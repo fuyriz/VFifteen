@@ -5,6 +5,7 @@ import gx
 import rand
 import strconv
 import utils
+import time
 
 struct App {
 mut:
@@ -40,7 +41,7 @@ fn frame(mut app App) {
 	app.draw()
 	app.frame_counter++
 	if app.frame_counter % 60 == 0 {
-		app.print_field()
+		//app.print_field()
 	}
 	app.gg.end()
 }
@@ -72,7 +73,26 @@ fn init(mut app App) {
 	app.scramble()
 }
 
+fn (mut app App) handle_tap(x i32, y i32) { //TODO: allow movements of few tiles with one click
+	if x < 50  || x > 850  {return}
+	if y < 200 || y > 1000 {return}
+	ny, nx := (x - 50) / 200, (y - 200) / 200
+	println(app.field[nx][ny])
+	if app.field[nx][ny] != 0 {
+		if nx != 0 && app.field[nx-1][ny] == 0 {app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; return}
+		if ny != 0 && app.field[nx][ny-1] == 0 {app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; return}
+		if nx != 3 && app.field[nx+1][ny] == 0 {app.field[nx][ny], app.field[nx+1][ny] = app.field[nx+1][ny], app.field[nx][ny]; return}
+		if ny != 3 && app.field[nx][ny+1] == 0 {app.field[nx][ny], app.field[nx][ny+1] = app.field[nx][ny+1], app.field[nx][ny]; return}
+	}
+}
+
 fn on_event(e &gg.Event, mut app App) {
+	match e.typ {
+		.mouse_up {
+			app.handle_tap(i32(e.mouse_x), i32(e.mouse_y))
+		}
+		else {}
+	}
 }
 
 fn (mut app App) resize() {
