@@ -10,7 +10,7 @@ import time
 struct App {
 mut:
 	gg          	&gg.Context = unsafe { nil }
-	field			[4][4]u64
+	field			[4][4]u8
 	frame_counter	u64
 	txtcfg			gx.TextCfg
 }
@@ -71,13 +71,15 @@ fn (mut app App) scramble() {
 fn init(mut app App) {
 	app.resize()
 	app.scramble()
+	for !utils.is_solvable(app.field) {
+		app.scramble()
+	}
 }
 
 fn (mut app App) handle_tap(x i32, y i32) { //TODO: allow movements of few tiles with one click
 	if x < 50  || x > 850  {return}
 	if y < 200 || y > 1000 {return}
 	ny, nx := (x - 50) / 200, (y - 200) / 200
-	println(app.field[nx][ny])
 	if app.field[nx][ny] != 0 {
 		if nx != 0 && app.field[nx-1][ny] == 0 {app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; return}
 		if ny != 0 && app.field[nx][ny-1] == 0 {app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; return}
