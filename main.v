@@ -5,23 +5,28 @@ import gx
 import rand
 import strconv
 import utils
-import time
 
 struct App {
 mut:
 	gg          	&gg.Context = unsafe { nil }
 	field			[4][4]u8
+	moves			u32
 	frame_counter	u64
 	txtcfg			gx.TextCfg
 }
 
-const window_title = 'PyatnVVki'
+const window_title = 'PyatnaVVki'
 const default_window_width = 900
 const default_window_height = 1200
 
 const padding = 10
 
 fn (app &App) draw() {
+	app.gg.draw_text(50, 100, "Moves: ${app.moves}", gx.TextCfg{
+		size: 60
+		color: gx.black
+		vertical_align: .middle
+	})
 	app.gg.draw_rounded_rect_filled(50, 200, 800, 800, 5, gx.gray)
 	mut xc, mut yc := 50 + padding / 2, 200 + padding / 2
 	tsize := 200 - padding
@@ -81,10 +86,10 @@ fn (mut app App) handle_tap(x i32, y i32) { //TODO: allow movements of few tiles
 	if y < 200 || y > 1000 {return}
 	ny, nx := (x - 50) / 200, (y - 200) / 200
 	if app.field[nx][ny] != 0 {
-		if nx != 0 && app.field[nx-1][ny] == 0 {app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; return}
-		if ny != 0 && app.field[nx][ny-1] == 0 {app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; return}
-		if nx != 3 && app.field[nx+1][ny] == 0 {app.field[nx][ny], app.field[nx+1][ny] = app.field[nx+1][ny], app.field[nx][ny]; return}
-		if ny != 3 && app.field[nx][ny+1] == 0 {app.field[nx][ny], app.field[nx][ny+1] = app.field[nx][ny+1], app.field[nx][ny]; return}
+		if nx != 0 && app.field[nx-1][ny] == 0 {app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; app.moves++; return}
+		if ny != 0 && app.field[nx][ny-1] == 0 {app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; app.moves++; return}
+		if nx != 3 && app.field[nx+1][ny] == 0 {app.field[nx][ny], app.field[nx+1][ny] = app.field[nx+1][ny], app.field[nx][ny]; app.moves++; return}
+		if ny != 3 && app.field[nx][ny+1] == 0 {app.field[nx][ny], app.field[nx][ny+1] = app.field[nx][ny+1], app.field[nx][ny]; app.moves++; return}
 	}
 }
 

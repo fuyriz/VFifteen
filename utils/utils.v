@@ -5,7 +5,7 @@ pub fn delete (mut arr []u8, index int) []u8 {
         return arr
     }
 
-    mut new_arr := arr[..index]
+    mut new_arr := unsafe{arr[..index]}
     new_arr << arr[index+1..]
     return new_arr
 }
