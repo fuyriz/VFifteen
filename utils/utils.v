@@ -55,6 +55,7 @@ pub fn pad(n u64, len u8) string {
     return num_str
 }
 
+@[inline]
 pub fn min(a u16, b u16) u16 {
     if a < b {return a}
     return b

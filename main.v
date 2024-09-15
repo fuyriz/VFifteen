@@ -130,9 +130,10 @@ fn init(mut app App) {
 }
 
 fn (mut app App) handle_tap(x i32, y i32) {
-    if x < 50 || x > 850 { return }
-    if y < 200 || y > 1000 { return }
-    ny, nx := (x - 50) / 200, (y - 200) / 200
+    if x < app.ui.f_x || x > app.ui.f_x + app.ui.field_size { return }
+    if y < app.ui.f_y || y > app.ui.f_y + app.ui.field_size { return }
+    ny, nx := (x - app.ui.f_x) / (app.ui.field_size / 4), (y - app.ui.f_y) / (app.ui.field_size / 4)
+	if nx < 0 || nx > 3 || ny < 0 || ny > 3 {return}
     if app.field[nx][ny] != 0 {
         if nx != 0 && app.field[nx-1][ny] == 0 { app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; app.moves++; }
         if ny != 0 && app.field[nx][ny-1] == 0 { app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; app.moves++; }
