@@ -14,9 +14,10 @@ mut:
 	moves			u32
 	frame_counter	u64
 	txtcfg			gx.TextCfg
-	timer_started    bool
-    start_time       u64
-    elapsed_time     u64
+	timer_started   bool
+    start_time      u64
+    elapsed_time    u64
+	is_solved		bool
 }
 
 const window_title = 'PyatnaVVki'
@@ -33,8 +34,8 @@ fn (mut app App) draw() {
     })
 
     // Отображение времени, если таймер запущен
-    if app.timer_started {
-        app.elapsed_time = u64(time.now().unix_time()) - app.start_time
+    if app.timer_started || app.is_solved {
+		if !app.is_solved {app.elapsed_time = u64(time.now().unix_time()) - app.start_time}
         app.gg.draw_text(50, 150, "Time: ${app.elapsed_time} seconds", gx.TextCfg{
             size: 60
             color: gx.black
@@ -61,8 +62,9 @@ fn frame(mut app App) {
     app.gg.begin()
     app.draw()
     app.frame_counter++
-    if app.frame_counter % 60 == 0 {
+    if app.frame_counter % 180 == 0 {
         //app.print_field()
+		//println(app.is_solved())
     }
     app.gg.end()
 }
@@ -89,46 +91,30 @@ fn (mut app App) scramble() {
 	}
 }
 
-/*fn (mut app App) new_game() {
-	app.field = app.field{}
-	for i in 0 .. 4 {
-		for j in 0 .. 4 {
-			app.field[i][j] = 0
-		}
-	}
-	mut unused := []u8{len: 16}
-	for i in 0..16 {unused[i] = u8(i)}
-	for i in 0 .. 4 {
-		for j in 0 .. 4 {
-			mut idx := rand.u32_in_range(0, u32(unused.len)) or {panic("Error: 1")}
-			app.field[i][j] = unused[idx]
-			unused = utils.delete(mut unused, idx)
-		}
-	}
-	app.gg.begin()
-	app.moves = 0
-	app.scramble()
-	app.gg.end()
-}*/
-
 fn (mut app App) new_game() {
-    for i in 0 .. 4 {
-        for j in 0 .. 4 {
-            app.field[i][j] = 0
-        }
-    }
     app.scramble()
+	for !utils.is_solvable(app.field) || app.is_solved(){
+		app.scramble()
+	}
     app.moves = 0
 	app.timer_started = false
+	app.is_solved = false
+	app.elapsed_time = 0
+}
+
+fn (app &App) is_solved() bool {
+	mut expected := u8(1)
+	for i in 0 .. 15 {
+		if app.field[i / 4][i % 4] != expected {return false}
+		expected++
+	}
+	return true
 }
 
 
 fn init(mut app App) {
 	app.resize()
-	app.scramble()
-	for !utils.is_solvable(app.field) {
-		app.scramble()
-	}
+	app.new_game()
 }
 
 fn (mut app App) handle_tap(x i32, y i32) {
@@ -145,6 +131,7 @@ fn (mut app App) handle_tap(x i32, y i32) {
             app.timer_started = true
             app.start_time = u64(time.now().unix_time())
         }
+		app.is_solved = app.is_solved()
     }
 }
 
