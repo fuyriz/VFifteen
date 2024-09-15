@@ -176,7 +176,7 @@ fn (mut app App) resize() {
 	app.ui.tile_size = app.ui.field_size / 4 - app.ui.tile_padding
 	app.ui.font_size = u16(f32((w + h)) * 6.5 / 200)
 	//if app.ui.font_size < 61 {app.ui.font_size = 61}
-	println(app.ui.font_size)
+	//println(app.ui.font_size)
 	app.txtcfg = gx.TextCfg{
 		...app.txtcfg
 		size: app.ui.font_size
