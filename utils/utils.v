@@ -46,3 +46,16 @@ pub fn is_solvable(puzzle [4][4]u8) bool {
     }
     return false
 }
+
+pub fn pad(n u64, len u8) string {
+    mut num_str := n.str()
+    for num_str.len < int(len) {
+        num_str = '0' + num_str
+    }
+    return num_str
+}
+
+pub fn min(a u16, b u16) u16 {
+    if a < b {return a}
+    return b
+} 

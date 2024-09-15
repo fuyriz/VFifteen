@@ -10,6 +10,7 @@ import utils
 struct App {
 mut:
 	gg          	&gg.Context = unsafe { nil }
+	ui				UI
 	field			[4][4]u8
 	moves			u32
 	frame_counter	u64
@@ -20,6 +21,18 @@ mut:
 	is_solved		bool
 }
 
+struct UI {
+mut:
+	window_width	u16
+	window_height	u16
+	field_size		u16
+	tile_padding	u16
+	tile_size		u16
+	font_size		u16
+	f_x				u16
+	f_y				u16
+}
+
 const window_title = 'PyatnaVVki'
 const default_window_width = 900
 const default_window_height = 1200
@@ -27,34 +40,33 @@ const default_window_height = 1200
 const padding = 10
 
 fn (mut app App) draw() {
-    app.gg.draw_text(50, 100, "Moves: ${app.moves}", gx.TextCfg{
-        size: 60
+    app.gg.draw_text(app.ui.f_x, app.ui.f_y / 2, "Moves: ${app.moves}", gx.TextCfg{
+        size: app.ui.font_size
         color: gx.black
         vertical_align: .middle
     })
 
-    // Отображение времени, если таймер запущен
     if app.timer_started || app.is_solved {
 		if !app.is_solved {app.elapsed_time = u64(time.now().unix_time()) - app.start_time}
-        app.gg.draw_text(50, 150, "Time: ${app.elapsed_time} seconds", gx.TextCfg{
-            size: 60
+        app.gg.draw_text(app.ui.f_x, app.ui.f_y - app.ui.f_y/4, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
+            size: app.ui.font_size
             color: gx.black
             vertical_align: .middle
         })
     }
 
-    app.gg.draw_rounded_rect_filled(50, 200, 800, 800, 5, gx.gray)
-    mut xc, mut yc := 50 + padding / 2, 200 + padding / 2
-    tsize := 200 - padding
+    app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, gx.gray)
+    mut xc, mut yc := app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
+    tsize := app.ui.tile_size
     for i in 0 .. 4 {
         for j in 0 .. 4 {
-            if app.field[i][j] == 0 { xc += tsize + padding; continue }
+            if app.field[i][j] == 0 { xc += tsize + app.ui.tile_padding; continue }
             app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 10, gx.rgb(4, 79, 53))
             app.gg.draw_text(xc + tsize / 2, yc + tsize / 2, "${app.field[i][j]}", app.txtcfg)
-            xc += tsize + padding
+            xc += tsize + app.ui.tile_padding
         }
-        xc = 50 + padding / 2
-        yc += tsize + padding
+        xc = app.ui.f_x + app.ui.tile_padding / 2
+        yc += tsize + app.ui.tile_padding
     }
 }
 
@@ -143,12 +155,32 @@ fn on_event(e &gg.Event, mut app App) {
 		.key_down {
 			app.on_key_down(e.key_code)
 		}
+		.resized, .restored, .resumed {
+			app.resize()
+		}
 		else {}
 	}
 }
 
 fn (mut app App) resize() {
-
+	window_size := app.gg.window_size()
+	w := u16(window_size.width)
+	h := u16(window_size.height)
+	m := utils.min(w, h)
+	app.ui.window_width  = w
+	app.ui.window_height = h
+	app.ui.field_size = u16(m - f32(m) * 1 / 9)
+	app.ui.f_x = (w - app.ui.field_size) / 2
+	app.ui.f_y = (h - app.ui.field_size) / 2
+	app.ui.tile_padding = app.ui.field_size / 80
+	app.ui.tile_size = app.ui.field_size / 4 - app.ui.tile_padding
+	app.ui.font_size = u16(f32((w + h)) * 6.5 / 200)
+	//if app.ui.font_size < 61 {app.ui.font_size = 61}
+	println(app.ui.font_size)
+	app.txtcfg = gx.TextCfg{
+		...app.txtcfg
+		size: app.ui.font_size
+	}
 }
 
 fn (mut app App) on_key_down(key gg.KeyCode) {
