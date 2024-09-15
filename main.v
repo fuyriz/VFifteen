@@ -37,8 +37,6 @@ const window_title = 'PyatnaVVki'
 const default_window_width = 900
 const default_window_height = 1200
 
-const padding = 10
-
 fn (mut app App) draw() {
     app.gg.draw_text(app.ui.f_x, app.ui.f_y / 2, "Moves: ${app.moves}", gx.TextCfg{
         size: app.ui.font_size
@@ -84,7 +82,7 @@ fn frame(mut app App) {
 fn (app &App) print_field() {
 	for i in 0 .. 4 {
 		for j in 0 .. 4 {
-			unsafe{strconv.v_printf('%2d ', app.field[i][j])}
+			print("${utils.pad(app.field[i][j], 2)} ")
 		}
 		println("")
 	}
@@ -123,7 +121,7 @@ fn (app &App) is_solved() bool {
 	return true
 }
 
-
+@[inline] // inline miami lol
 fn init(mut app App) {
 	app.resize()
 	app.new_game()
@@ -132,9 +130,11 @@ fn init(mut app App) {
 fn (mut app App) handle_tap(x i32, y i32) {
     if x < app.ui.f_x || x > app.ui.f_x + app.ui.field_size { return }
     if y < app.ui.f_y || y > app.ui.f_y + app.ui.field_size { return }
-    ny, nx := (x - app.ui.f_x) / (app.ui.field_size / 4), (y - app.ui.f_y) / (app.ui.field_size / 4)
+    ny, nx := u8((x - app.ui.f_x) / (app.ui.field_size / 4)), u8((y - app.ui.f_y) / (app.ui.field_size / 4))
 	if nx < 0 || nx > 3 || ny < 0 || ny > 3 {return}
-    if app.field[nx][ny] != 0 {
+	app.process_move(nx, ny)
+	//mut napp := app; napp.process_move(nx, ny)
+    /*if app.field[nx][ny] != 0 {
         if nx != 0 && app.field[nx-1][ny] == 0 { app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; app.moves++; }
         if ny != 0 && app.field[nx][ny-1] == 0 { app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; app.moves++; }
         if nx != 3 && app.field[nx+1][ny] == 0 { app.field[nx][ny], app.field[nx+1][ny] = app.field[nx+1][ny], app.field[nx][ny]; app.moves++; }
@@ -145,7 +145,57 @@ fn (mut app App) handle_tap(x i32, y i32) {
             app.start_time = u64(time.now().unix_time())
         }
 		app.is_solved = app.is_solved()
-    }
+    }*/
+}
+
+fn (mut app App) process_move(x u8, y u8) {
+	//don't ask me how this works
+	nx, ny := y, x
+	mut line := app.field[ny]
+	mut idx := utils.find(line[..], 0)
+	if idx != -1 {
+		if idx > nx {
+			for i := idx - 1; i >= nx; i-- {
+				line[i+1] = line[i]
+			}
+		} else if nx > idx {
+			for i in idx + 1 .. nx + 1 {
+				line[i-1] = line[i]
+			}
+		}
+		line[nx] = 0
+		app.field[x] = line
+		app.moves++
+		if !app.timer_started {
+            app.timer_started = true
+            app.start_time = u64(time.now().unix_time())
+        }
+		app.is_solved = app.is_solved()
+		return
+	}
+	mut nf := utils.transpose(app.field)
+	line = nf[y]
+	idx = utils.find(line[..], 0)
+	if idx != -1 {
+		if idx > x {
+			for i := idx - 1; i >= x; i-- {
+				line[i+1] = line[i]
+			}
+		} else if x > idx {
+			for i in idx + 1 .. x + 1 {
+				line[i-1] = line[i]
+			}
+		}
+		line[x] = 0
+		nf[y] = line
+		app.field = utils.transpose(nf)
+		app.moves++
+		if !app.timer_started {
+            app.timer_started = true
+            app.start_time = u64(time.now().unix_time())
+        }
+		app.is_solved = app.is_solved()
+	}
 }
 
 fn on_event(e &gg.Event, mut app App) {

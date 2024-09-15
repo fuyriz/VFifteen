@@ -59,4 +59,21 @@ pub fn pad(n u64, len u8) string {
 pub fn min(a u16, b u16) u16 {
     if a < b {return a}
     return b
-} 
+}
+
+pub fn find(arr []u8, n u8) i16 {
+    for i in 0 .. arr.len {
+        if arr[i] == n {return i}
+    }
+    return -1
+}
+
+pub fn transpose(matrix [4][4]u8) [4][4]u8 {
+    mut nm := matrix
+    for i in 0 .. 4 {
+        for j in 0 .. 4 {
+            nm[i][j] = matrix[j][i]
+        }
+    }
+    return nm
+}
