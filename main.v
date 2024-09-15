@@ -4,7 +4,6 @@ import time
 import gg
 import gx
 import rand
-import strconv
 import utils
 
 struct App {
@@ -38,15 +37,15 @@ const default_window_width = 900
 const default_window_height = 1200
 
 fn (mut app App) draw() {
-    app.gg.draw_text(app.ui.f_x, app.ui.f_y / 2, "Moves: ${app.moves}", gx.TextCfg{
+    app.gg.draw_text(app.ui.f_x, app.ui.font_size, "Moves: ${app.moves}", gx.TextCfg{
         size: app.ui.font_size
         color: gx.black
         vertical_align: .middle
     })
 
     if app.timer_started || app.is_solved {
-		if !app.is_solved {app.elapsed_time = u64(time.now().unix_time()) - app.start_time}
-        app.gg.draw_text(app.ui.f_x, app.ui.f_y - app.ui.f_y/4, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
+		if !app.is_solved {app.elapsed_time = u64(time.now().unix()) - app.start_time}
+        app.gg.draw_text(app.ui.f_x, app.ui.font_size * 2, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
             size: app.ui.font_size
             color: gx.black
             vertical_align: .middle
@@ -133,19 +132,6 @@ fn (mut app App) handle_tap(x i32, y i32) {
     ny, nx := u8((x - app.ui.f_x) / (app.ui.field_size / 4)), u8((y - app.ui.f_y) / (app.ui.field_size / 4))
 	if nx < 0 || nx > 3 || ny < 0 || ny > 3 {return}
 	app.process_move(nx, ny)
-	//mut napp := app; napp.process_move(nx, ny)
-    /*if app.field[nx][ny] != 0 {
-        if nx != 0 && app.field[nx-1][ny] == 0 { app.field[nx][ny], app.field[nx-1][ny] = app.field[nx-1][ny], app.field[nx][ny]; app.moves++; }
-        if ny != 0 && app.field[nx][ny-1] == 0 { app.field[nx][ny], app.field[nx][ny-1] = app.field[nx][ny-1], app.field[nx][ny]; app.moves++; }
-        if nx != 3 && app.field[nx+1][ny] == 0 { app.field[nx][ny], app.field[nx+1][ny] = app.field[nx+1][ny], app.field[nx][ny]; app.moves++; }
-        if ny != 3 && app.field[nx][ny+1] == 0 { app.field[nx][ny], app.field[nx][ny+1] = app.field[nx][ny+1], app.field[nx][ny]; app.moves++; }
-        //timer
-        if !app.timer_started {
-            app.timer_started = true
-            app.start_time = u64(time.now().unix_time())
-        }
-		app.is_solved = app.is_solved()
-    }*/
 }
 
 fn (mut app App) process_move(x u8, y u8) {
@@ -168,7 +154,7 @@ fn (mut app App) process_move(x u8, y u8) {
 		app.moves++
 		if !app.timer_started {
             app.timer_started = true
-            app.start_time = u64(time.now().unix_time())
+            app.start_time = u64(time.now().unix())
         }
 		app.is_solved = app.is_solved()
 		return
@@ -192,7 +178,7 @@ fn (mut app App) process_move(x u8, y u8) {
 		app.moves++
 		if !app.timer_started {
             app.timer_started = true
-            app.start_time = u64(time.now().unix_time())
+            app.start_time = u64(time.now().unix())
         }
 		app.is_solved = app.is_solved()
 	}
