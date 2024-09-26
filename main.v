@@ -30,6 +30,7 @@ mut:
 	font_size		u16
 	f_x				u16
 	f_y				u16
+	spawn_anim_len	u16 = 30
 }
 
 const window_title = 'PyatnaVVki'
@@ -53,8 +54,26 @@ fn (mut app App) draw() {
     }
 
     app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, gx.gray)
-    mut xc, mut yc := app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
-    tsize := app.ui.tile_size
+    //spawn animation
+	tsize := app.ui.tile_size
+	mut xc, mut yc := app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
+	if app.frame_counter < app.ui.spawn_anim_len {
+		diff := u16(app.ui.spawn_anim_len - app.frame_counter)
+		asize := u16(tsize / diff)
+		padding := u16(app.ui.tile_padding + (tsize - asize))
+		for i in 0 .. 4 {
+			for j in 0 .. 4 {
+				if app.field[i][j] == 0 { xc += asize + padding; continue }
+				app.gg.draw_rounded_rect_filled(xc, yc, asize, asize, 10, gx.rgb(4, 79, 53))
+				xc += asize + padding
+			}
+			xc = app.ui.f_x + padding / 2
+			yc += asize + padding
+		}
+		return
+	}
+
+	xc, yc = app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
     for i in 0 .. 4 {
         for j in 0 .. 4 {
             if app.field[i][j] == 0 { xc += tsize + app.ui.tile_padding; continue }
@@ -109,6 +128,7 @@ fn (mut app App) new_game() {
 	app.timer_started = false
 	app.is_solved = false
 	app.elapsed_time = 0
+	app.frame_counter = 0
 }
 
 fn (app &App) is_solved() bool {
