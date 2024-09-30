@@ -28,9 +28,22 @@ mut:
 	tile_padding	u16
 	tile_size		u16
 	font_size		u16
+	label_font_size	u16
 	f_x				u16
 	f_y				u16
 	spawn_anim_len	u16 = 30
+	theme			Theme
+}
+
+struct Theme {
+mut:
+	background		gx.Color
+	font			gx.Color
+	font_dark		gx.Color
+	font_accent		gx.Color
+	tile			gx.Color
+	tile_correct	gx.Color
+	field			gx.Color
 }
 
 const window_title = 'PyatnaVVki'
@@ -38,22 +51,43 @@ const default_window_width = 900
 const default_window_height = 1200
 
 fn (mut app App) draw() {
-    app.gg.draw_text(app.ui.f_x, app.ui.font_size, "Moves: ${app.moves}", gx.TextCfg{
-        size: app.ui.font_size
-        color: gx.black
+	app.gg.set_text_cfg(gx.TextCfg{
+		...app.txtcfg
+		size: app.ui.label_font_size
+	})
+	mut tw, mut th := app.gg.text_size("Moves: ${app.moves}")
+	tw, th = int(f32(tw) * 1.2), int(f32(th) * 1.2)
+	if app.timer_started || app.is_solved {
+		th += app.ui.label_font_size + app.ui.label_font_size / 5
+		tw = utils.max(u16(app.gg.text_width("Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}")), u16(tw))
+	}
+	app.gg.draw_rounded_rect_filled(
+		app.ui.f_x, 
+		app.ui.label_font_size - app.gg.text_height("H")/2-2,
+		tw,
+		th,
+		20, app.ui.theme.tile_correct
+	)
+
+    app.gg.draw_text(app.ui.f_x + tw/2, app.ui.label_font_size, "Moves: ${app.moves}", gx.TextCfg{
+        size: app.ui.label_font_size
+        color: app.ui.theme.font_dark
         vertical_align: .middle
+		align: .center
     })
 
     if app.timer_started || app.is_solved {
 		if !app.is_solved {app.elapsed_time = u64(time.now().unix()) - app.start_time}
-        app.gg.draw_text(app.ui.f_x, app.ui.font_size * 2, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
-            size: app.ui.font_size
-            color: gx.black
+        app.gg.draw_text(app.ui.f_x + tw/2, app.ui.label_font_size * 2, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
+            size: app.ui.label_font_size
+            color: app.ui.theme.font_dark
             vertical_align: .middle
+			align: .center
         })
     }
+	//Draw field
+    //app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, app.ui.theme.field)
 
-    app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, gx.gray)
     //spawn animation
 	tsize := app.ui.tile_size
 	mut xc, mut yc := app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
@@ -61,10 +95,12 @@ fn (mut app App) draw() {
 		diff := u16(app.ui.spawn_anim_len - app.frame_counter)
 		asize := u16(tsize / diff)
 		padding := u16(app.ui.tile_padding + (tsize - asize))
+		xc, yc = app.ui.f_x + padding / 2, app.ui.f_y + padding / 2
 		for i in 0 .. 4 {
 			for j in 0 .. 4 {
 				if app.field[i][j] == 0 { xc += asize + padding; continue }
-				app.gg.draw_rounded_rect_filled(xc, yc, asize, asize, 10, gx.rgb(4, 79, 53))
+				c := if i * 4 + j == app.field[i][j] + 1 {app.ui.theme.tile_correct} else {app.ui.theme.tile}
+				app.gg.draw_rounded_rect_filled(xc, yc, asize, asize, 20, c)
 				xc += asize + padding
 			}
 			xc = app.ui.f_x + padding / 2
@@ -77,7 +113,12 @@ fn (mut app App) draw() {
     for i in 0 .. 4 {
         for j in 0 .. 4 {
             if app.field[i][j] == 0 { xc += tsize + app.ui.tile_padding; continue }
-            app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 10, gx.rgb(4, 79, 53))
+			c := if i * 4 + j == app.field[i][j] - 1 {app.ui.theme.tile_correct} else {app.ui.theme.tile}
+            app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 20, c)
+			app.gg.draw_text((xc + tsize / 2) + 2, (yc + tsize / 2) + 2, "${app.field[i][j]}", gx.TextCfg{
+				...app.txtcfg
+				color: gx.rgba(10, 23, 16, 100)
+				})
             app.gg.draw_text(xc + tsize / 2, yc + tsize / 2, "${app.field[i][j]}", app.txtcfg)
             xc += tsize + app.ui.tile_padding
         }
@@ -231,7 +272,8 @@ fn (mut app App) resize() {
 	app.ui.f_y = (h - app.ui.field_size) / 2
 	app.ui.tile_padding = app.ui.field_size / 80
 	app.ui.tile_size = app.ui.field_size / 4 - app.ui.tile_padding
-	app.ui.font_size = u16(f32((w + h)) * 6.5 / 200)
+	app.ui.font_size = u16(f32((w + h)) * 6.5 / 150)
+	app.ui.label_font_size = u16(f32((w + h)) * 6.5 / 200)
 	//if app.ui.font_size < 61 {app.ui.font_size = 61}
 	//println(app.ui.font_size)
 	app.txtcfg = gx.TextCfg{
@@ -244,21 +286,29 @@ fn (mut app App) on_key_down(key gg.KeyCode) {
 	// these keys are independent from the game state:
 	match key {
 		.escape { app.gg.quit() }
-		.n, .r { app.new_game() }
+		.n, .r { app.new_game(); }
 		else{}
 	}
 }
 
 fn main() {
 	mut app := &App{}
+	app.ui.theme = Theme {
+		background: 	gx.rgb(10, 23, 16)
+		font:			gx.rgb(253, 251, 252)
+		font_dark:		gx.rgb(0, 66, 46)
+		font_accent:	gx.rgb(7, 220, 162)
+		tile:			gx.rgb(67, 113, 102)
+		tile_correct:	gx.rgb(0, 255, 165)
+	}
 	app.txtcfg = gx.TextCfg {
-		color: gx.white
+		color: app.ui.theme.font
 		size: 69
 		align: .center
 		vertical_align: .middle
 	}
 	app.gg = gg.new_context(
-		bg_color: gx.white
+		bg_color: app.ui.theme.background
 		width: default_window_width
 		height: default_window_height
 		window_title: window_title
@@ -267,5 +317,9 @@ fn main() {
 		event_fn: on_event
 		user_data: app
 	)
+	app.gg.set_text_cfg(gx.TextCfg{
+		...app.txtcfg
+		size: app.ui.label_font_size
+		})
 	app.gg.run()
 }
