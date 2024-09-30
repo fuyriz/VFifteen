@@ -61,6 +61,12 @@ pub fn min(a u16, b u16) u16 {
     return b
 }
 
+@[inline]
+pub fn max(a u16, b u16) u16 {
+    if a > b {return a}
+    return b
+}
+
 pub fn find(arr []u8, n u8) i16 {
     for i in 0 .. arr.len {
         if arr[i] == n {return i}

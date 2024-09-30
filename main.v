@@ -55,15 +55,15 @@ fn (mut app App) draw() {
 		...app.txtcfg
 		size: app.ui.label_font_size
 	})
-	mut tw, mut th := app.gg.text_size("Moves: ${app.moves}")
+	mut tw, mut th := app.gg.text_size("Moves: 000")
 	tw, th = int(f32(tw) * 1.2), int(f32(th) * 1.2)
 	if app.timer_started || app.is_solved {
 		th += app.ui.label_font_size + app.ui.label_font_size / 5
-		tw = utils.max(u16(app.gg.text_width("Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}")), u16(tw))
+		tw = utils.max(u16(app.gg.text_width("Time: 00:00")), u16(tw))
 	}
 	app.gg.draw_rounded_rect_filled(
 		app.ui.f_x, 
-		app.ui.label_font_size - app.gg.text_height("H")/2-2,
+		app.ui.label_font_size - app.gg.text_height("H")/2-4,
 		tw,
 		th,
 		20, app.ui.theme.tile_correct
@@ -85,6 +85,30 @@ fn (mut app App) draw() {
 			align: .center
         })
     }
+
+	app.gg.draw_text(
+		app.ui.f_x + tw + int(f32(app.ui.tile_size) * 1.2), 
+		app.ui.f_y / 2,
+		"Classic ",
+		gx.TextCfg{
+			...app.txtcfg,
+			color: app.ui.theme.font
+			size: app.txtcfg.size - app.txtcfg.size / 2
+		}
+	)
+	tx := app.ui.f_x + tw + int(f32(app.ui.tile_size) * 1.2) + app.gg.text_width("Classic ")
+	app.gg.draw_text(
+		tx,
+		app.ui.f_y / 2,
+		"4x4",
+		gx.TextCfg{
+			...app.txtcfg,
+			color: app.ui.theme.font_accent
+			size: app.txtcfg.size - app.txtcfg.size / 2
+		}
+	)
+
+
 	//Draw field
     //app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, app.ui.theme.field)
 
@@ -100,7 +124,7 @@ fn (mut app App) draw() {
 			for j in 0 .. 4 {
 				if app.field[i][j] == 0 { xc += asize + padding; continue }
 				c := if i * 4 + j == app.field[i][j] + 1 {app.ui.theme.tile_correct} else {app.ui.theme.tile}
-				app.gg.draw_rounded_rect_filled(xc, yc, asize, asize, 20, c)
+				app.gg.draw_rounded_rect_filled(xc, yc, asize, asize, 30, c)
 				xc += asize + padding
 			}
 			xc = app.ui.f_x + padding / 2
@@ -114,7 +138,7 @@ fn (mut app App) draw() {
         for j in 0 .. 4 {
             if app.field[i][j] == 0 { xc += tsize + app.ui.tile_padding; continue }
 			c := if i * 4 + j == app.field[i][j] - 1 {app.ui.theme.tile_correct} else {app.ui.theme.tile}
-            app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 20, c)
+            app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 30, c)
 			app.gg.draw_text((xc + tsize / 2) + 2, (yc + tsize / 2) + 2, "${app.field[i][j]}", gx.TextCfg{
 				...app.txtcfg
 				color: gx.rgba(10, 23, 16, 100)
@@ -272,7 +296,7 @@ fn (mut app App) resize() {
 	app.ui.f_y = (h - app.ui.field_size) / 2
 	app.ui.tile_padding = app.ui.field_size / 80
 	app.ui.tile_size = app.ui.field_size / 4 - app.ui.tile_padding
-	app.ui.font_size = u16(f32((w + h)) * 6.5 / 150)
+	app.ui.font_size = u16(f32((w + h)) * 6.5 / 100)
 	app.ui.label_font_size = u16(f32((w + h)) * 6.5 / 200)
 	//if app.ui.font_size < 61 {app.ui.font_size = 61}
 	//println(app.ui.font_size)
