@@ -96,7 +96,7 @@ fn (mut app App) draw() {
 			size: app.txtcfg.size - app.txtcfg.size / 2
 		}
 	)
-	tx := app.ui.f_x + tw + int(f32(app.ui.tile_size) * 1.2) + app.gg.text_width("Classic ")
+	tx := app.ui.f_x + tw + int(f32(app.ui.tile_size) * 1.2) + app.gg.text_width("Classic")
 	app.gg.draw_text(
 		tx,
 		app.ui.f_y / 2,
@@ -296,14 +296,19 @@ fn (mut app App) resize() {
 	app.ui.f_y = (h - app.ui.field_size) / 2
 	app.ui.tile_padding = app.ui.field_size / 80
 	app.ui.tile_size = app.ui.field_size / 4 - app.ui.tile_padding
-	app.ui.font_size = u16(f32((w + h)) * 6.5 / 100)
-	app.ui.label_font_size = u16(f32((w + h)) * 6.5 / 200)
-	//if app.ui.font_size < 61 {app.ui.font_size = 61}
-	//println(app.ui.font_size)
+	app.ui.font_size = u16(f32(utils.min(w, h)) * 13 / 100)
+	app.ui.label_font_size = app.ui.font_size / 2
 	app.txtcfg = gx.TextCfg{
 		...app.txtcfg
 		size: app.ui.font_size
 	}
+	app.gg.set_text_cfg(gx.TextCfg{
+		...app.txtcfg
+		size: app.ui.label_font_size
+	})
+	app.ui.f_y = u16(app.ui.label_font_size - app.gg.text_height("H")/2-4 + 
+	app.gg.text_height("Moves: 000") + (app.ui.label_font_size + app.ui.label_font_size / 5))
+	+ app.ui.tile_padding * 2
 }
 
 fn (mut app App) on_key_down(key gg.KeyCode) {

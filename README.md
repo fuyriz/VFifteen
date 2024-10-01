@@ -5,8 +5,8 @@ The [fifteen](https://en.wikipedia.org/wiki/15_puzzle) puzzle written in [V prog
  ## How to run
  Install [V](https://vlang.io/) first
  ```
-$ git clone https://github.com/fuyriz/THE-PyatnaVVki
-$ cd THE-PyatnaVVki/
+$ git clone https://github.com/fuyriz/VFifteen
+$ cd VFifteen/
 $ v run . 
 ```
 
