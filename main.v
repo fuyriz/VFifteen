@@ -18,6 +18,7 @@ mut:
     start_time      u64
     elapsed_time    u64
 	is_solved		bool
+	win_animation	u8 = 15
 }
 
 struct UI {
@@ -46,7 +47,7 @@ mut:
 	field			gx.Color
 }
 
-const window_title = 'PyatnaVVki'
+const window_title = 'VFifteen'
 const default_window_width = 900
 const default_window_height = 1200
 
@@ -151,9 +152,66 @@ fn (mut app App) draw() {
     }
 }
 
+fn (mut app App) draw_win_screen() {
+	if app.win_animation > 0 {
+		app.gg.draw_rect_filled(0, 0, app.ui.window_width, app.ui.window_height, gx.rgba(0, 0, 0, 120 / app.win_animation))
+		app.gg.draw_text(app.ui.window_width / 2, 
+		app.ui.window_height / 3, 
+		"You won!",
+		gx.TextCfg {
+			...app.txtcfg,
+			align: .center,
+			vertical_align: .middle,
+			color: app.ui.theme.font_accent,
+			//size: app.ui.label_font_size
+			size: 69 / app.win_animation
+			}	
+		)
+		app.gg.draw_text(app.ui.window_width / 2,
+		app.ui.window_height / 3 + app.ui.label_font_size + app.ui.tile_padding * 2,
+		"Press N to start new game",
+		gx.TextCfg {
+			...app.txtcfg,
+			align: .center,
+			vertical_align: .middle,
+			//color: app.ui.theme.font_accent,
+			size: app.ui.label_font_size / app.win_animation
+			}	
+		)
+		app.win_animation--
+		return
+	}
+	app.gg.draw_rect_filled(0, 0, app.ui.window_width, app.ui.window_height, gx.rgba(0, 0, 0, 120))
+	app.gg.draw_text(app.ui.window_width / 2, 
+		app.ui.window_height / 3, 
+		"You won!",
+		gx.TextCfg {
+			...app.txtcfg,
+			align: .center,
+			vertical_align: .middle,
+			color: app.ui.theme.font_accent,
+			//size: app.ui.label_font_size
+		}	
+	)
+	app.gg.draw_text(app.ui.window_width / 2,
+		app.ui.window_height / 3 + app.ui.label_font_size + app.ui.tile_padding * 2,
+		"Press N to start new game",
+		gx.TextCfg {
+			...app.txtcfg,
+			align: .center,
+			vertical_align: .middle,
+			//color: app.ui.theme.font_accent,
+			size: app.ui.label_font_size
+		}	
+	)
+}
+
 fn frame(mut app App) {
     app.gg.begin()
     app.draw()
+	if app.is_solved {
+		app.draw_win_screen()
+	}
     app.frame_counter++
     if app.frame_counter % 180 == 0 {
         //app.print_field()
@@ -194,6 +252,7 @@ fn (mut app App) new_game() {
 	app.is_solved = false
 	app.elapsed_time = 0
 	app.frame_counter = 0
+	app.win_animation = 15
 }
 
 fn (app &App) is_solved() bool {
@@ -316,6 +375,7 @@ fn (mut app App) on_key_down(key gg.KeyCode) {
 	match key {
 		.escape { app.gg.quit() }
 		.n, .r { app.new_game(); }
+		.w {app.is_solved = true}
 		else{}
 	}
 }
