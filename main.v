@@ -19,6 +19,7 @@ mut:
     elapsed_time    u64
 	is_solved		bool
 	win_animation	u8 = 15
+	animated_tiles	[][]u8
 }
 
 struct UI {
@@ -134,10 +135,11 @@ fn (mut app App) draw() {
 		return
 	}
 
+	app.draw_animated_tiles()
 	xc, yc = app.ui.f_x + app.ui.tile_padding / 2, app.ui.f_y + app.ui.tile_padding / 2
     for i in 0 .. 4 {
         for j in 0 .. 4 {
-            if app.field[i][j] == 0 { xc += tsize + app.ui.tile_padding; continue }
+            if app.field[i][j] == 0 || app.is_animated(j, i){ xc += tsize + app.ui.tile_padding; continue }
 			c := if i * 4 + j == app.field[i][j] - 1 {app.ui.theme.tile_correct} else {app.ui.theme.tile}
             app.gg.draw_rounded_rect_filled(xc, yc, tsize, tsize, 30, c)
 			app.gg.draw_text((xc + tsize / 2) + 2, (yc + tsize / 2) + 2, "${app.field[i][j]}", gx.TextCfg{
@@ -150,6 +152,46 @@ fn (mut app App) draw() {
         xc = app.ui.f_x + app.ui.tile_padding / 2
         yc += tsize + app.ui.tile_padding
     }
+}
+
+fn (mut app App) draw_animated_tiles() {
+	if app.animated_tiles.len == 0 {return}
+	tsize := app.ui.tile_size
+	c := app.ui.theme.tile
+	for i in app.animated_tiles {
+		if i[3] == 0 {continue}
+		match i[2] {
+			1 {
+				cx := app.ui.f_x + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * (i[0] - 1)
+				rx := cx + (tsize / 15) * (15 - i[3])
+				yc := app.ui.f_y + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * i[1] 
+				app.gg.draw_rounded_rect_filled(rx, yc, tsize, tsize, 30, c)
+				app.gg.draw_text(rx + tsize / 2, yc + tsize / 2, "${app.field[i[1]][i[0]]}", app.txtcfg)
+			}
+			2 {
+				cx := app.ui.f_x + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * (i[0] + 1)
+				rx := cx - (tsize / 15) * (15 - i[3])
+				yc := app.ui.f_y + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * i[1] 
+				app.gg.draw_rounded_rect_filled(rx, yc, tsize, tsize, 30, c)
+            	app.gg.draw_text(rx + tsize / 2, yc + tsize / 2, "${app.field[i[1]][i[0]]}", app.txtcfg)
+			}
+			3 {
+				cy := app.ui.f_y + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * (i[1] - 1)
+				ry := cy + (tsize / 15) * (15 - i[3])
+				xc := app.ui.f_x + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * i[0] 
+				app.gg.draw_rounded_rect_filled(xc, ry, tsize, tsize, 30, c)
+            	app.gg.draw_text(xc + tsize / 2, ry + tsize / 2, "${app.field[i[1]][i[0]]}", app.txtcfg)
+			}
+			4 {
+				cy := app.ui.f_y + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * (i[1] + 1)
+				ry := cy - (tsize / 15) * (15 - i[3])
+				xc := app.ui.f_x + app.ui.tile_padding / 2 + (tsize + app.ui.tile_padding) * i[0] 
+				app.gg.draw_rounded_rect_filled(xc, ry, tsize, tsize, 30, c)
+            	app.gg.draw_text(xc + tsize / 2, ry + tsize / 2, "${app.field[i[1]][i[0]]}", app.txtcfg)
+			}
+			else {}
+		}
+	}
 }
 
 fn (mut app App) draw_win_screen() {
@@ -237,7 +279,7 @@ fn (mut app App) scramble() {
 		for j in 0 .. 4 {
 			mut idx := rand.u32_in_range(0, u32(unused.len)) or {panic("Error: 1")}
 			app.field[i][j] = unused[idx]
-			unused = utils.delete(mut unused, idx)
+			unused = utils.delete(unused, idx)
 		}
 	}
 }
@@ -278,6 +320,19 @@ fn (mut app App) handle_tap(x i32, y i32) {
 	app.process_move(nx, ny)
 }
 
+fn (mut app App) is_animated(x u8, y u8) bool {
+	for n, i in app.animated_tiles {
+		if i[0] == x && i[1] == y {
+			if i[3] == 0 {app.animated_tiles = utils.delete(app.animated_tiles, n); return false}
+			else if i[0] == x && i[1] == y {
+				app.animated_tiles[n][3]--
+				return true
+			}
+		}
+	}
+	return false
+}
+
 fn (mut app App) process_move(x u8, y u8) {
 	//don't ask me how this works
 	nx, ny := y, x
@@ -287,10 +342,12 @@ fn (mut app App) process_move(x u8, y u8) {
 		if idx > nx {
 			for i := idx - 1; i >= nx; i-- {
 				line[i+1] = line[i]
+				app.animated_tiles << [u8(i + 1), u8(ny), 1, 15]
 			}
 		} else if nx > idx {
 			for i in idx + 1 .. nx + 1 {
 				line[i-1] = line[i]
+				app.animated_tiles << [u8(i - 1), u8(ny), 2, 15]
 			}
 		}
 		line[nx] = 0
@@ -310,10 +367,12 @@ fn (mut app App) process_move(x u8, y u8) {
 		if idx > x {
 			for i := idx - 1; i >= x; i-- {
 				line[i+1] = line[i]
+				app.animated_tiles << [u8(nx), u8(i + 1), 3, 15]
 			}
 		} else if x > idx {
 			for i in idx + 1 .. x + 1 {
 				line[i-1] = line[i]
+				app.animated_tiles << [u8(nx), u8(i - 1), 4, 15]
 			}
 		}
 		line[x] = 0

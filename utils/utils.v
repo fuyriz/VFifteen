@@ -1,12 +1,12 @@
 module utils
 
-pub fn delete (mut arr []u8, index int) []u8 {
+pub fn delete<T>(arr []T, index int) []T {
     if index < 0 || index >= arr.len {
         return arr
     }
 
-    mut new_arr := unsafe{arr[..index]}
-    new_arr << arr[index+1..]
+    mut new_arr := unsafe { arr[..index] }
+    new_arr << arr[index + 1..]
     return new_arr
 }
 
