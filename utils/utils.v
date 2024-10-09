@@ -83,3 +83,10 @@ pub fn transpose(matrix [4][4]u8) [4][4]u8 {
     }
     return nm
 }
+
+pub fn f32_to_str(num f32) string {
+    rounded := int(num * 100 + 0.5)
+    integer_part := rounded / 100
+    fractional_part := rounded % 100
+    return '${integer_part}.${fractional_part:02d}'
+}

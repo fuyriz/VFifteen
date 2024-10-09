@@ -1,5 +1,6 @@
 module main
 
+import os
 import time
 import gg
 import gx
@@ -20,6 +21,8 @@ mut:
 	is_solved		bool
 	win_animation	u8 = 15
 	animated_tiles	[][]u8
+	is_debug_mode	bool
+	is_in_editor	bool
 }
 
 struct UI {
@@ -35,6 +38,7 @@ mut:
 	f_y				u16
 	spawn_anim_len	u16 = 30
 	theme			Theme
+	buttons			[][]u16
 }
 
 struct Theme {
@@ -49,8 +53,39 @@ mut:
 }
 
 const window_title = 'VFifteen'
-const default_window_width = 900
-const default_window_height = 1200
+const default_window_width = 600
+const default_window_height = 800
+
+fn (mut app App) add_button(x u16, y u16, width u16, height u16, id u16) {
+	for n, i in app.ui.buttons {
+		if i[4] == id {
+			app.ui.buttons[n][0] = x
+			app.ui.buttons[n][1] = y
+			app.ui.buttons[n][2] = width
+			app.ui.buttons[n][3] = height
+			return
+		}
+	}
+	app.ui.buttons << [x, y, width, height, id]
+}
+
+fn (mut app App) remove_button(id u16) {
+	for n, i in app.ui.buttons {
+		if i[4] == id {
+			app.ui.buttons = utils.delete(app.ui.buttons, n)
+			return
+		}
+	}
+}
+
+fn (mut app App) draw_button(id u16, r u16, c gx.Color) {
+	for _, i in app.ui.buttons {
+		if i[4] == id {
+			app.gg.draw_rounded_rect_filled(i[0], i[1], i[2], i[2], r, c)
+			return
+		}
+	}
+}
 
 fn (mut app App) draw() {
 	app.gg.set_text_cfg(gx.TextCfg{
@@ -69,6 +104,21 @@ fn (mut app App) draw() {
 		tw,
 		th,
 		20, app.ui.theme.tile_correct
+	)
+	app.add_button(u16(app.ui.f_x), u16(app.ui.label_font_size - app.gg.text_height("H")/2-4), u16(tw), u16(th), 1)
+
+	app.gg.draw_rounded_rect_filled (
+		app.ui.f_x + tw + app.ui.tile_padding * 3,
+		app.ui.label_font_size - app.gg.text_height("H")/2-4 + app.ui.tile_padding,
+		u16(f32(app.ui.label_font_size) * 1.5),
+		u16(f32(app.ui.label_font_size) * 1.5),
+		30, app.ui.theme.tile
+	)
+	app.add_button(u16(app.ui.f_x + tw + app.ui.tile_padding * 3),
+		u16(app.ui.label_font_size - app.gg.text_height("H")/2-4 + app.ui.tile_padding),
+		u16(f32(app.ui.label_font_size) * 1.5),
+		u16(f32(app.ui.label_font_size) * 1.5),
+		2
 	)
 
     app.gg.draw_text(app.ui.f_x + tw/2, app.ui.label_font_size, "Moves: ${app.moves}", gx.TextCfg{
@@ -110,9 +160,10 @@ fn (mut app App) draw() {
 		}
 	)
 
-
 	//Draw field
-    //app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, app.ui.theme.field)
+    //if app.is_in_editor {
+	//	app.gg.draw_rounded_rect_filled(app.ui.f_x, app.ui.f_y, app.ui.field_size, app.ui.field_size, 10, app.ui.theme.field)
+	//}
 
     //spawn animation
 	tsize := app.ui.tile_size
@@ -246,6 +297,25 @@ fn (mut app App) draw_win_screen() {
 			size: app.ui.label_font_size
 		}	
 	)
+	if app.moves == 0 {return}
+	app.gg.draw_text(app.ui.window_width / 2,
+		app.ui.window_height / 3 + app.ui.label_font_size * 2 + app.ui.tile_padding * 2,
+		"You speed was ${utils.f32_to_str(f32(app.moves) / f32(app.elapsed_time))}",
+		gx.TextCfg {
+			...app.txtcfg,
+			align: .center,
+			vertical_align: .middle,
+			//color: app.ui.theme.font_accent,
+			size: app.ui.label_font_size
+		}	
+	)
+}
+
+fn (mut app App) dbg_buttons(){
+	if !app.is_debug_mode {return}
+	for _, i in app.ui.buttons {
+		app.gg.draw_rect_filled(i[0], i[1], i[2], i[3], gx.rgba(200, 20, 20, 130))
+	}
 }
 
 fn frame(mut app App) {
@@ -254,6 +324,7 @@ fn frame(mut app App) {
 	if app.is_solved {
 		app.draw_win_screen()
 	}
+	app.dbg_buttons()
     app.frame_counter++
     if app.frame_counter % 180 == 0 {
         //app.print_field()
@@ -313,6 +384,7 @@ fn init(mut app App) {
 }
 
 fn (mut app App) handle_tap(x i32, y i32) {
+	if app.is_solved {app.new_game(); return}
     if x < app.ui.f_x || x > app.ui.f_x + app.ui.field_size { return }
     if y < app.ui.f_y || y > app.ui.f_y + app.ui.field_size { return }
     ny, nx := u8((x - app.ui.f_x) / (app.ui.field_size / 4)), u8((y - app.ui.f_y) / (app.ui.field_size / 4))
@@ -389,6 +461,9 @@ fn (mut app App) process_move(x u8, y u8) {
 
 fn on_event(e &gg.Event, mut app App) {
 	match e.typ {
+		.mouse_down {
+			app.check_buttons(u16(e.mouse_x), u16(e.mouse_y))
+		}
 		.mouse_up {
 			app.handle_tap(i32(e.mouse_x), i32(e.mouse_y))
 		}
@@ -398,6 +473,24 @@ fn on_event(e &gg.Event, mut app App) {
 		.resized, .restored, .resumed {
 			app.resize()
 		}
+		else {}
+	}
+}
+
+fn (mut app App) check_buttons(mx u16, my u16) {
+	for n, i in app.ui.buttons {
+		if (mx > i[0] && mx < i[0] + i[2]) &&
+		(my > i[1] && my < i[1] + i[3]) {
+			app.process_button(u16(n))
+			return
+		}
+	}
+}
+
+fn (mut app App) process_button(n u16) {
+	match app.ui.buttons[n][4] {
+		1 {if !app.is_solved{app.new_game()}}
+		2 {app.is_in_editor = !app.is_in_editor}
 		else {}
 	}
 }
@@ -434,13 +527,15 @@ fn (mut app App) on_key_down(key gg.KeyCode) {
 	match key {
 		.escape { app.gg.quit() }
 		.n, .r { app.new_game(); }
-		.w {app.is_solved = true}
+		.w {if app.is_debug_mode{app.is_solved = true}}
 		else{}
 	}
 }
 
 fn main() {
 	mut app := &App{}
+	app.is_debug_mode = os.args.contains("-d")
+	if app.is_debug_mode {println("Debug mode activated")}
 	app.ui.theme = Theme {
 		background: 	gx.rgb(10, 23, 16)
 		font:			gx.rgb(253, 251, 252)
