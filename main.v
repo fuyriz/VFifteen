@@ -22,7 +22,16 @@ mut:
 	win_animation	u8 = 15
 	animated_tiles	[][]u8
 	is_debug_mode	bool
-	is_in_editor	bool
+	state			GameState
+	state_changed	bool
+}
+
+enum GameState{
+	play
+	pause
+	victory
+	settings
+	stats
 }
 
 struct UI {
@@ -129,7 +138,10 @@ fn (mut app App) draw() {
     })
 
     if app.timer_started || app.is_solved {
-		if !app.is_solved {app.elapsed_time = u64(time.now().unix()) - app.start_time}
+		
+		// TODO: fix elapsed time calculation to encount time in pause
+		
+		if !app.is_solved && app.state != .pause {app.elapsed_time = u64(time.now().unix()) - app.start_time}
         app.gg.draw_text(app.ui.f_x + tw/2, app.ui.label_font_size * 2, "Time: ${app.elapsed_time/60}:${utils.pad(app.elapsed_time%60, 2)}", gx.TextCfg{
             size: app.ui.label_font_size
             color: app.ui.theme.font_dark
@@ -203,6 +215,9 @@ fn (mut app App) draw() {
         xc = app.ui.f_x + app.ui.tile_padding / 2
         yc += tsize + app.ui.tile_padding
     }
+	if app.state == .pause {
+		app.draw_pause_screen()
+	}
 }
 
 fn (mut app App) draw_animated_tiles() {
@@ -311,6 +326,18 @@ fn (mut app App) draw_win_screen() {
 	)
 }
 
+fn (mut app App) draw_pause_screen() {
+	app.gg.draw_rect_filled(0, 0, app.ui.window_width, app.ui.window_height, gx.rgba(0, 0, 0, 120))
+	app.gg.draw_text(
+		app.ui.window_width / 2,
+		app.ui.window_height / 2 - app.ui.tile_size,
+		"Paused",
+		gx.TextCfg {
+			...app.txtcfg
+		}
+	)
+}
+
 fn (mut app App) dbg_buttons(){
 	if !app.is_debug_mode {return}
 	for _, i in app.ui.buttons {
@@ -385,6 +412,7 @@ fn init(mut app App) {
 
 fn (mut app App) handle_tap(x i32, y i32) {
 	if app.is_solved {app.new_game(); return}
+	if app.state == .pause {if app.state_changed{app.state_changed = false; return}app.state = .play; return}
     if x < app.ui.f_x || x > app.ui.f_x + app.ui.field_size { return }
     if y < app.ui.f_y || y > app.ui.f_y + app.ui.field_size { return }
     ny, nx := u8((x - app.ui.f_x) / (app.ui.field_size / 4)), u8((y - app.ui.f_y) / (app.ui.field_size / 4))
@@ -490,7 +518,7 @@ fn (mut app App) check_buttons(mx u16, my u16) {
 fn (mut app App) process_button(n u16) {
 	match app.ui.buttons[n][4] {
 		1 {if !app.is_solved{app.new_game()}}
-		2 {app.is_in_editor = !app.is_in_editor}
+		2 {app.state = .pause; app.state_changed = true}
 		else {}
 	}
 }
@@ -528,6 +556,10 @@ fn (mut app App) on_key_down(key gg.KeyCode) {
 		.escape { app.gg.quit() }
 		.n, .r { app.new_game(); }
 		.w {if app.is_debug_mode{app.is_solved = true}}
+		.p {
+			if app.state == .play {app.state = .pause}
+			else if app.state == .pause {app.state = .play}
+		}
 		else{}
 	}
 }
